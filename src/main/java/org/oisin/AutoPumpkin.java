@@ -22,44 +22,49 @@ import org.rusherhack.core.setting.NumberSetting;
 import org.rusherhack.core.setting.StringSetting;
 import org.rusherhack.core.utils.ColorUtils;
 
-import java.awt.*;
+import net.minecraft.world.item.Items; // Only added this to use Items.SHEARS
 
 /**
  * AutoPumpkin
+ *
+ * Automatically shears nearby pumpkins.
  *
  * @author oisin404
  */
 
 public class AutoPumpkin extends ToggleableModule {
-	
+
 	/**
 	 * Settings
 	 */
-	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 0f, 6f)
+	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 0f, 6f); // Added semicolon
 
 	/**
 	 * Constructor
 	 */
-
-	public ExampleModule() {
+	public AutoPumpkin() {
 		super("AutoPumpkin", "Automatically shears nearby pumpkins.", ModuleCategory.CLIENT);
-		
-		//register settings
-		this.registerSettings(
-				this.range
-		);
 
-		public void onUpdate(EventInteract event) {
-			//check if the module is enabled
-			if (!this.isToggled()) {
-				return;
-			}
+		// Register settings
+		this.registerSettings(this.range);
+	}
 
-			try {
-				if (!(mc.player.getMainHandItem().getItem() == Items.SHEARS)) {
-					return;
-				}
-				ChatUtils.print("Shears Detected")
-			}
+	/**
+	 * Event listener for updating
+	 */
+	@Subscribe
+	public void onUpdate(EventUpdate event) {
+		// Check if the module is enabled
+		if (!this.isToggled()) {
+			return;
 		}
+
+		// Check if the player is holding shears
+		if (!(mc.player.getMainHandItem().getItem() == Items.SHEARS)) {
+			return;
+		}
+
+		// Print to chat when shears are detected
+		ChatUtils.print("Shears Detected");
+	}
 }
