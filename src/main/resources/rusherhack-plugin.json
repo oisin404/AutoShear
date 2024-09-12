@@ -1,12 +1,13 @@
 {
-  "Plugin-Class": "org.example.ExamplePlugin",
-  "Name": "Example Plugin",
+  "Plugin-Class": "org.oisin.Main",
+  "Name": "AutoPumpkin",
   "Version": "${plugin_version}",
-  "Description": "Example rusherhack plugin",
+  "Description": "Automatically shear nearby pumpkins.",
   "Authors": [
-    "John200410"
+    "oisin404"
   ],
   "Minecraft-Versions": [
-    "1.20.1"
+    "1.21",
+    "1.21.1"
   ]
 }
