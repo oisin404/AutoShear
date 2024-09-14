@@ -14,7 +14,7 @@ public class Main extends Plugin {
 	public void onLoad() {
 		
 		//logger
-		this.getLogger().info("AutoPumpkin loaded!");
+		this.getLogger().info("AutoPumpkin locked n' loaded!");
 		
 		//creating and registering a new module
 		final AutoPumpkin autoPumpkin = new AutoPumpkin();
