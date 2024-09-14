@@ -34,28 +34,23 @@ public class AutoPumpkin extends ToggleableModule {
 	 */
 	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 3f, 5f)
 			.incremental(0.5);
-	private final BooleanSetting silent = new BooleanSetting("Silent", "Silently swaps to shears", true);
+	private final BooleanSetting silent = new BooleanSetting("SilentSwap", "Silently swaps to shears", false);
 
 	/**
 	 * Constructor
 	 */
 	public AutoPumpkin() {
 		super("AutoPumpkin", "Automatically shears nearby pumpkins", ModuleCategory.CLIENT);
-
-		// Register settings
 		this.registerSettings(this.range, this.silent);
 	}
 
 	/**
-	 * Check if an item is a pair of shears.
+	 * check shears
 	 */
 	private boolean isShears(ItemStack item) {
 		return item.getItem() == Items.SHEARS;
 	}
 
-	/**
-	 * Get the slot of the shears in the inventory.
-	 */
 	private int getShearsInInventory() {
 		for (int i = 0; i < mc.player.getInventory().items.size(); i++) {
 			ItemStack stack = mc.player.getInventory().items.get(i);
@@ -67,8 +62,21 @@ public class AutoPumpkin extends ToggleableModule {
 	}
 
 	/**
-	 * Event listener for updating
+	 * silent
 	 */
+	private void silentSwap(int itemSlot) {
+		if (mc.screen == null) {
+			mc.setScreen(new InventoryScreen(mc.player));
+			return;
+		}
+
+		ChatUtils.print("Performing silent swap.");
+		mc.gameMode.handleInventoryMouseClick(mc.player.containerMenu.containerId, itemSlot, mc.player.getInventory().selected, ClickType.SWAP, mc.player);
+		mc.setScreen(null);
+		ChatUtils.print("Swap performed. Closing inventory.");
+	}
+
+
 	@Subscribe
 	public void onUpdate(EventUpdate event) {
 		// Check if the module is enabled
@@ -76,23 +84,19 @@ public class AutoPumpkin extends ToggleableModule {
 			return;
 		}
 
-		// Check if the player is holding shears or needs to silent swap
+		// check mainhand
 		if (!isShears(mc.player.getMainHandItem())) {
 			if (silent.getValue()) {
 				int shearsSlot = getShearsInInventory();
 				if (shearsSlot != -1) {
-					// Swap to shears silently
-					mc.setScreen(new InventoryScreen(mc.player));
-					mc.gameMode.handleInventoryMouseClick(mc.player.containerMenu.containerId, shearsSlot, mc.player.getInventory().selected, ClickType.SWAP, mc.player);
-					mc.setScreen(null);
+					// silent swap
+					silentSwap(shearsSlot);
 				} else {
 					ChatUtils.print("No shears in inventory.");
-					this.setToggled(false);  // Disable module if no shears are available
+					this.setToggled(false);
 					return;
 				}
 			} else {
-				ChatUtils.print("No shears in hand.");
-				this.setToggled(false);
 				return;
 			}
 		}
@@ -102,17 +106,15 @@ public class AutoPumpkin extends ToggleableModule {
 		BlockPos closestPumpkin = null;
 		double closestDistance = Double.MAX_VALUE;
 
-		// Loop through blocks in a cubic area around the player, within the specified range
 		for (int x = (int) -rangeValue; x <= rangeValue; x++) {
 			for (int y = (int) -rangeValue; y <= rangeValue; y++) {
 				for (int z = (int) -rangeValue; z <= rangeValue; z++) {
 					BlockPos blockPos = playerPos.offset(x, y, z);
 
-					// Check if the block is a pumpkin
+					// check pumpkin
 					if (mc.level.getBlockState(blockPos).getBlock() == Blocks.PUMPKIN) {
 						double distance = blockPos.distSqr(playerPos);
 
-						// If this is the closest pumpkin so far, update closestPumpkin
 						if (distance < closestDistance) {
 							closestDistance = distance;
 							closestPumpkin = blockPos;
@@ -122,9 +124,8 @@ public class AutoPumpkin extends ToggleableModule {
 			}
 		}
 
-		// If a pumpkin was found, interact with it to carve it
+		// carve
 		if (closestPumpkin != null) {
-			// Simulate right-clicking the pumpkin with shears to carve it
 			mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
 					new BlockHitResult(
 							new Vec3(closestPumpkin.getX() + 0.5, closestPumpkin.getY() + 0.5, closestPumpkin.getZ() + 0.5),
