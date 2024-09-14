@@ -4,6 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.Direction;
 import org.rusherhack.client.api.RusherHackAPI;
 import org.rusherhack.client.api.events.client.EventUpdate;
 import org.rusherhack.client.api.events.render.EventRender2D;
@@ -23,8 +27,7 @@ import org.rusherhack.core.setting.BooleanSetting;
 import org.rusherhack.core.setting.NumberSetting;
 import org.rusherhack.core.setting.StringSetting;
 import org.rusherhack.core.utils.ColorUtils;
-
-import net.minecraft.world.item.Items; // Only added this to use Items.SHEARS
+import net.minecraft.world.item.Items;
 
 /**
  * AutoPumpkin
@@ -33,14 +36,13 @@ import net.minecraft.world.item.Items; // Only added this to use Items.SHEARS
  *
  * @author oisin404
  */
-
 public class AutoPumpkin extends ToggleableModule {
 
 	/**
 	 * Settings
 	 */
-	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 0f, 6f)
-		.incremental(0.5);
+	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 3f, 5f)
+			.incremental(0.5);
 
 	/**
 	 * Constructor
@@ -69,17 +71,40 @@ public class AutoPumpkin extends ToggleableModule {
 
 		BlockPos playerPos = mc.player.blockPosition();
 		float rangeValue = this.range.getValue();
+		BlockPos closestPumpkin = null;
+		double closestDistance = Double.MAX_VALUE;
+
+		// Loop through blocks in a cubic area around the player, within the specified range
 		for (int x = (int) -rangeValue; x <= rangeValue; x++) {
 			for (int y = (int) -rangeValue; y <= rangeValue; y++) {
 				for (int z = (int) -rangeValue; z <= rangeValue; z++) {
 					BlockPos blockPos = playerPos.offset(x, y, z);
+
+					// Check if the block is a pumpkin
 					if (mc.level.getBlockState(blockPos).getBlock() == Blocks.PUMPKIN) {
+						double distance = blockPos.distSqr(playerPos);
 
-
-
+						// If this is the closest pumpkin so far, update closestPumpkin
+						if (distance < closestDistance) {
+							closestDistance = distance;
+							closestPumpkin = blockPos;
+						}
 					}
 				}
 			}
+		}
+
+		// If a pumpkin was found, interact with it to carve it
+		if (closestPumpkin != null) {
+			// ChatUtils.print("Carving Pumpkin at " + closestPumpkin.toShortString());
+
+			// Simulate right-clicking the pumpkin with shears to carve it
+			mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+					new BlockHitResult(
+							new Vec3(closestPumpkin.getX() + 0.5, closestPumpkin.getY() + 0.5, closestPumpkin.getZ() + 0.5),
+							Direction.UP, closestPumpkin, false
+					)
+			);
 		}
 	}
 }
