@@ -1,5 +1,7 @@
 package org.oisin;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.rusherhack.client.api.RusherHackAPI;
@@ -37,7 +39,8 @@ public class AutoPumpkin extends ToggleableModule {
 	/**
 	 * Settings
 	 */
-	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 0f, 6f); // Added semicolon
+	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 0f, 6f)
+		.incremental(0.5);
 
 	/**
 	 * Constructor
@@ -60,11 +63,23 @@ public class AutoPumpkin extends ToggleableModule {
 		}
 
 		// Check if the player is holding shears
-		if (!(mc.player.getMainHandItem().getItem() == Items.SHEARS)) {
+		if (mc.player.getMainHandItem().getItem() != Items.SHEARS) {
 			return;
 		}
 
-		// Print to chat when shears are detected
-		ChatUtils.print("Shears Detected");
+		BlockPos playerPos = mc.player.blockPosition();
+		float rangeValue = this.range.getValue();
+		for (int x = (int) -rangeValue; x <= rangeValue; x++) {
+			for (int y = (int) -rangeValue; y <= rangeValue; y++) {
+				for (int z = (int) -rangeValue; z <= rangeValue; z++) {
+					BlockPos blockPos = playerPos.offset(x, y, z);
+					if (mc.level.getBlockState(blockPos).getBlock() == Blocks.PUMPKIN) {
+
+
+
+					}
+				}
+			}
+		}
 	}
 }
