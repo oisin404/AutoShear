@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.Direction;
+import org.rusherhack.client.api.RusherHackAPI;
 import org.rusherhack.client.api.events.client.EventUpdate;
 import org.rusherhack.client.api.feature.module.ModuleCategory;
 import org.rusherhack.client.api.feature.module.ToggleableModule;
@@ -34,16 +35,17 @@ public class AutoShear extends ToggleableModule {
 	 */
 	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 3f, 5f)
 			.incremental(0.5);
-	private final BooleanSetting shearSheep = new BooleanSetting("ShearSheep", "Shear nearby sheep", true);
-	private final BooleanSetting carvePumpkins = new BooleanSetting("CarvePumpkins", "Carve nearby pumpkins", true);
-	private final BooleanSetting harvestBeehives = new BooleanSetting("HarvestBeehives", "Harvest honeycombs from nearby beehives/nests", true);
+	private final BooleanSetting rotate = new BooleanSetting("Rotate", "Rotates to target to bypass Anti-Cheat", true);
+	private final BooleanSetting shearSheep = new BooleanSetting("ShearSheep", "Shear nearby sheep", false);
+	private final BooleanSetting carvePumpkins = new BooleanSetting("CarvePumpkins", "Carve nearby pumpkins", false);
+	private final BooleanSetting harvestBeehives = new BooleanSetting("HarvestBeehives", "Harvest honeycombs from nearby beehives/nests", false);
 
 	/**
 	 * Constructor
 	 */
 	public AutoShear() {
 		super("AutoShear", "Automatically shears nearby pumpkins, sheep, or beehives/nests", ModuleCategory.CLIENT);
-		this.registerSettings(this.range, this.shearSheep, this.carvePumpkins, this.harvestBeehives);
+		this.registerSettings(this.range, this.shearSheep, this.carvePumpkins, this.harvestBeehives, this.rotate);
 	}
 
 	/**
@@ -56,13 +58,12 @@ public class AutoShear extends ToggleableModule {
 	/**
 	 * Check if there is a campfire under the hive/nest and within 5 blocks
 	 */
-	private boolean hasCampfireUnder(BlockPos hivePos) {
-		// Check beneath the hive/nest up to 5 blocks down
+	private boolean isSmoked(BlockPos hivePos) {
+		// check for campfire
 		for (int i = 1; i <= 5; i++) {
 			BlockPos belowPos = hivePos.below(i);
 			BlockState belowState = mc.level.getBlockState(belowPos);
 
-			// Check if the block is a campfire or soul campfire
 			if (belowState.getBlock() == Blocks.CAMPFIRE || belowState.getBlock() == Blocks.SOUL_CAMPFIRE) {
 				return true;
 			}
@@ -72,32 +73,54 @@ public class AutoShear extends ToggleableModule {
 
 	@Subscribe
 	public void onUpdate(EventUpdate event) {
-		// Check if the module is enabled
+		// check enabled
 		if (!this.isToggled()) {
 			return;
 		}
 
-		// Check if main hand item is shears
+		// mainhand shears
 		if (!isShears(mc.player.getMainHandItem())) {
 			return;
 		}
 
 		BlockPos playerPos = mc.player.blockPosition();
 		float rangeValue = this.range.getValue();
+		double closestDistance;
 
-		// Check for sheep
+		// check sheep
 		if (shearSheep.getValue()) {
+			LivingEntity target = null;
+			closestDistance = Double.MAX_VALUE;
+
+			// loop entitiys
 			for (Entity entity : mc.level.getEntities(mc.player, mc.player.getBoundingBox().inflate(rangeValue))) {
+				// check if sheep
 				if (entity instanceof LivingEntity livingEntity && entity.getType().equals(EntityType.SHEEP)) {
-					mc.gameMode.interact(mc.player, livingEntity, InteractionHand.MAIN_HAND);
+					double distance = mc.player.distanceTo(livingEntity);
+
+					// closest sheep target
+					if (distance < closestDistance) {
+						closestDistance = distance;
+						target = livingEntity;
+					}
 				}
+			}
+
+			// rotate and shear
+			if (target != null) {
+				if (this.rotate.getValue()) {
+					// rotate
+					RusherHackAPI.getRotationManager().updateRotation(target);
+				}
+				// shear
+				mc.gameMode.interact(mc.player, target, InteractionHand.MAIN_HAND);
 			}
 		}
 
-		// Check for pumpkins
+		// check pumpkin
 		if (carvePumpkins.getValue()) {
 			BlockPos closestPumpkin = null;
-			double closestDistance = Double.MAX_VALUE;
+			closestDistance = Double.MAX_VALUE;  // reuse closestDistance
 
 			for (int x = (int) -rangeValue; x <= rangeValue; x++) {
 				for (int y = (int) -rangeValue; y <= rangeValue; y++) {
@@ -117,6 +140,12 @@ public class AutoShear extends ToggleableModule {
 			}
 
 			if (closestPumpkin != null) {
+				if (this.rotate.getValue()) {
+					// rotate
+					Vec3 targetVec = new Vec3(closestPumpkin.getX() + 0.5, closestPumpkin.getY() + 0.5, closestPumpkin.getZ() + 0.5);
+					RusherHackAPI.getRotationManager().updateRotation(BlockPos.containing(targetVec));
+				}
+				// carve
 				mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
 						new BlockHitResult(
 								new Vec3(closestPumpkin.getX() + 0.5, closestPumpkin.getY() + 0.5, closestPumpkin.getZ() + 0.5),
@@ -126,10 +155,10 @@ public class AutoShear extends ToggleableModule {
 			}
 		}
 
-		// Check for beehives/nests with honey level 5 and a campfire below
+		// bee logic
 		if (harvestBeehives.getValue()) {
 			BlockPos closestHive = null;
-			double closestDistance = Double.MAX_VALUE;
+			closestDistance = Double.MAX_VALUE;  // reuse closetDistance
 
 			for (int x = (int) -rangeValue; x <= rangeValue; x++) {
 				for (int y = (int) -rangeValue; y <= rangeValue; y++) {
@@ -137,10 +166,10 @@ public class AutoShear extends ToggleableModule {
 						BlockPos blockPos = playerPos.offset(x, y, z);
 						BlockState blockState = mc.level.getBlockState(blockPos);
 
-						// Check if it's a beehive or bee nest and honey level is 5
+						// beehive/next honey 5
 						if ((blockState.getBlock() == Blocks.BEEHIVE || blockState.getBlock() == Blocks.BEE_NEST)
 								&& blockState.getValue(BeehiveBlock.HONEY_LEVEL) == 5
-								&& hasCampfireUnder(blockPos)) {
+								&& isSmoked(blockPos)) {
 							double distance = blockPos.distSqr(playerPos);
 
 							if (distance < closestDistance) {
@@ -153,6 +182,12 @@ public class AutoShear extends ToggleableModule {
 			}
 
 			if (closestHive != null) {
+				if (this.rotate.getValue()) {
+					// rotate
+					Vec3 targetVec = new Vec3(closestHive.getX() + 0.5, closestHive.getY() + 0.5, closestHive.getZ() + 0.5);
+					RusherHackAPI.getRotationManager().updateRotation(BlockPos.containing(targetVec));
+				}
+				// harvest honeycomb
 				mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
 						new BlockHitResult(
 								new Vec3(closestHive.getX() + 0.5, closestHive.getY() + 0.5, closestHive.getZ() + 0.5),
