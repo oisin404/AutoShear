@@ -32,21 +32,26 @@ import org.rusherhack.core.setting.NumberSetting;
 public class AutoShear extends ToggleableModule {
 
 	/**
-	 * Settings
+	 * Global Settings
 	 */
-	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 3f, 5f)
-			.incremental(0.5);
+	private final NumberSetting<Float> range = new NumberSetting<>("Range", 3f, 3f, 6f).incremental(0.5);
 	private final BooleanSetting rotate = new BooleanSetting("Rotate", "Rotates to target to bypass Anti-Cheat", true);
-	private final BooleanSetting shearSheep = new BooleanSetting("ShearSheep", "Shear nearby sheep", false);
-	private final BooleanSetting carvePumpkins = new BooleanSetting("CarvePumpkins", "Carve nearby pumpkins", false);
-	private final BooleanSetting harvestBeehives = new BooleanSetting("HarvestBeehives", "Harvest honeycombs from nearby beehives/nests", false);
+
+	/**
+	 * Target Settings
+	 */
+	private final BooleanSetting shearSheep = new BooleanSetting("Sheep", "Shear nearby sheep", false);
+	private final BooleanSetting carvePumpkins = new BooleanSetting("Pumpkins", "Carve nearby pumpkins", false);
+	private final BooleanSetting harvestBeehives = new BooleanSetting("Beehives", "Harvest honeycombs from nearby beehives/nests", false);
+	private final BooleanSetting targetsMenu = new BooleanSetting("Targets", "Select targets for shearing/carving", true);
 
 	/**
 	 * Constructor
 	 */
 	public AutoShear() {
 		super("AutoShear", "Automatically shears nearby pumpkins, sheep, or beehives/nests", ModuleCategory.CLIENT);
-		this.registerSettings(this.rotate, this.range, this.shearSheep, this.carvePumpkins, this.harvestBeehives);
+		this.targetsMenu.addSubSettings(shearSheep, carvePumpkins, harvestBeehives);
+		this.registerSettings(this.rotate, this.range, this.targetsMenu);
 	}
 
 	/**
@@ -91,7 +96,7 @@ public class AutoShear extends ToggleableModule {
 		// check for sheep
 		if (shearSheep.getValue()) {
 			LivingEntity target = null;
-            closestDistance = Double.MAX_VALUE;
+			closestDistance = Double.MAX_VALUE;
 
 			// loop entity in range
 			for (Entity entity : mc.level.getEntities(mc.player, mc.player.getBoundingBox().inflate(rangeValue))) {
@@ -122,7 +127,6 @@ public class AutoShear extends ToggleableModule {
 				mc.gameMode.interact(mc.player, target, InteractionHand.MAIN_HAND);
 			}
 		}
-
 
 		// check pumpkin
 		if (carvePumpkins.getValue()) {
