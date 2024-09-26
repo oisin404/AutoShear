@@ -4,7 +4,7 @@ import org.rusherhack.client.api.RusherHackAPI;
 import org.rusherhack.client.api.plugin.Plugin;
 
 /**
- * AutoPumpkin
+ * AutoShear
  *
  * @author oisin404
  */
@@ -14,16 +14,16 @@ public class Main extends Plugin {
 	public void onLoad() {
 		
 		//logger
-		this.getLogger().info("AutoPumpkin locked n' loaded!");
+		this.getLogger().info("AutoShear locked n' loaded!");
 		
 		//creating and registering a new module
-		final AutoPumpkin autoPumpkin = new AutoPumpkin();
-		RusherHackAPI.getModuleManager().registerFeature(autoPumpkin);
+		final AutoShear autoShear = new AutoShear();
+		RusherHackAPI.getModuleManager().registerFeature(autoShear);
 	}
 	
 	@Override
 	public void onUnload() {
-		this.getLogger().info("AutoPumpkin unloaded!");
+		this.getLogger().info("AutoShear unloaded!");
 	}
 	
 }
