@@ -1,6 +1,7 @@
 package org.oisin;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BeehiveBlock;
 import net.minecraft.world.entity.Entity;
@@ -45,18 +46,18 @@ public class AutoShear extends ToggleableModule {
 	 */
 	public AutoShear() {
 		super("AutoShear", "Automatically shears nearby pumpkins, sheep, or beehives/nests", ModuleCategory.CLIENT);
-		this.registerSettings(this.range, this.shearSheep, this.carvePumpkins, this.harvestBeehives, this.rotate);
+		this.registerSettings(this.rotate, this.range, this.shearSheep, this.carvePumpkins, this.harvestBeehives);
 	}
 
 	/**
-	 * Check if item is shears
+	 * check shears
 	 */
 	private boolean isShears(ItemStack item) {
 		return item.getItem() == Items.SHEARS;
 	}
 
 	/**
-	 * Check if there is a campfire under the hive/nest and within 5 blocks
+	 * check campfire
 	 */
 	private boolean isSmoked(BlockPos hivePos) {
 		// check for campfire
@@ -87,26 +88,31 @@ public class AutoShear extends ToggleableModule {
 		float rangeValue = this.range.getValue();
 		double closestDistance;
 
-		// check sheep
+		// check for sheep
 		if (shearSheep.getValue()) {
 			LivingEntity target = null;
-			closestDistance = Double.MAX_VALUE;
+            closestDistance = Double.MAX_VALUE;
 
-			// loop entitiys
+			// loop entity in range
 			for (Entity entity : mc.level.getEntities(mc.player, mc.player.getBoundingBox().inflate(rangeValue))) {
-				// check if sheep
+				// Check if the entity is a sheep
 				if (entity instanceof LivingEntity livingEntity && entity.getType().equals(EntityType.SHEEP)) {
-					double distance = mc.player.distanceTo(livingEntity);
+					Sheep sheep = (Sheep) entity;
 
-					// closest sheep target
-					if (distance < closestDistance) {
-						closestDistance = distance;
-						target = livingEntity;
+					// adult + not sheared
+					if (!sheep.isBaby() && !sheep.isSheared()) {
+						double distance = mc.player.distanceTo(livingEntity);
+
+						// target
+						if (distance < closestDistance) {
+							closestDistance = distance;
+							target = livingEntity;
+						}
 					}
 				}
 			}
 
-			// rotate and shear
+			// target shear
 			if (target != null) {
 				if (this.rotate.getValue()) {
 					// rotate
@@ -116,6 +122,7 @@ public class AutoShear extends ToggleableModule {
 				mc.gameMode.interact(mc.player, target, InteractionHand.MAIN_HAND);
 			}
 		}
+
 
 		// check pumpkin
 		if (carvePumpkins.getValue()) {
